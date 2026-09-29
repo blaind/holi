@@ -30,6 +30,10 @@ cargo run --release
 | F | toggle depth of field |
 | Tab | hide the toggle panel |
 
+## AI disclosure
+
+Made with Claude Opus 5.5.
+
 ## License
 
 Dual-licensed under either of [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE), at your option.
