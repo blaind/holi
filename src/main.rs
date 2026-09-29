@@ -60,6 +60,18 @@ fn to_world(x: f32, y: f32, z: f32) -> Vec3 {
     BOX_MIN + Vec3::new(x, y, z) * CELL
 }
 
+/// Height of the ground at (x, z): the meadow, or the top of a hill ellipsoid.
+fn ground_height(hills: &[(Vec3, Vec3)], x: f32, z: f32) -> f32 {
+    hills
+        .iter()
+        .map(|(c, r)| {
+            let (dx, dz) = ((x - c.x) / r.x, (z - c.z) / r.z);
+            let inside = 1.0 - dx * dx - dz * dz;
+            if inside > 0.0 { c.y + r.y * inside.sqrt() } else { 0.0 }
+        })
+        .fold(0.0, f32::max)
+}
+
 /// Cell position of cannon i's muzzle and its aim (inward and up).
 fn cannon_layout(i: usize) -> (Vec3, Vec3) {
     let a = i as f32 / N_CANNONS as f32 * TAU + 0.2;
@@ -259,14 +271,17 @@ fn setup_world(
         Name::new("Meadow"),
     ));
     let hill_mesh = meshes.add(Sphere::new(1.0).mesh().ico(4).unwrap());
+    let mut hills = Vec::new();
     for i in 0..14 {
         let a = i as f32 / 14.0 * TAU + rng.range(-0.2, 0.2);
         let r = rng.range(30.0, 60.0);
         let d = rng.range(70.0, 120.0);
+        let (centre, radii) = (Vec3::new(a.cos() * d, -r * 0.78, a.sin() * d), Vec3::new(r * 1.6, r, r * 1.3));
+        hills.push((centre, radii));
         commands.spawn((
             Mesh3d(hill_mesh.clone()),
             MeshMaterial3d(hill.clone()),
-            Transform::from_xyz(a.cos() * d, -r * 0.78, a.sin() * d).with_scale(Vec3::new(r * 1.6, r, r * 1.3)),
+            Transform::from_translation(centre).with_scale(radii),
             NotShadowCaster,
             Layer(HILLS),
         ));
@@ -333,11 +348,14 @@ fn setup_world(
         (0..9).map(|_| (rng.range(0.0, TAU), rng.range(10.5, 13.0), rng.range(1.0, 1.35))).collect();
     spots.extend((0..22).map(|i| (i as f32 / 22.0 * TAU + rng.range(-0.12, 0.12), rng.range(15.5, 24.0), rng.range(1.1, 1.7))));
     spots.extend((0..45).map(|_| (rng.range(0.0, TAU), rng.range(32.0, 70.0), rng.range(1.4, 2.4))));
-    let real: Vec<(f32, f32, f32, usize)> = spots
+    let real: Vec<(Vec3, f32, usize)> = spots
         .iter()
         .enumerate()
         .filter(|(_, (a, r, _))| !(*r < 13.5 && (a - 0.4).sin().atan2((a - 0.4).cos()).abs() < 0.9))
-        .map(|(i, &(a, r, s))| (a.cos() * r, a.sin() * r, s * 1.2, i))
+        .map(|(i, &(a, r, s))| {
+            let (x, z) = (a.cos() * r, a.sin() * r);
+            (Vec3::new(x, ground_height(&hills, x, z), z), s * 1.2, i)
+        })
         .collect();
     let f = forest(&real, 5);
     commands.spawn((Mesh3d(meshes.add(f.bark_mesh())), MeshMaterial3d(bark), Layer(TREES), Name::new("Branches")));

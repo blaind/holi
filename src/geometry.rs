@@ -385,7 +385,8 @@ impl Forest {
     }
 }
 
-pub fn forest(spots: &[(f32, f32, f32, usize)], seed: u64) -> Forest {
+/// spots: (base position, scale, tint index).
+pub fn forest(spots: &[(Vec3, f32, usize)], seed: u64) -> Forest {
     let tints = [
         Vec3::new(0.26, 0.52, 0.08),
         Vec3::new(0.32, 0.58, 0.10),
@@ -393,9 +394,9 @@ pub fn forest(spots: &[(f32, f32, f32, usize)], seed: u64) -> Forest {
     ];
     let mut g = Rng::new(seed);
     let mut f = Forest::default();
-    for &(x, z, s, k) in spots {
-        let density = if (x * x + z * z).sqrt() < 30.0 { 1.0 } else { 0.45 };
-        f.grow(&mut g, Vec3::new(x, 0.0, z), s, tints[k % tints.len()], density);
+    for &(base, s, k) in spots {
+        let density = if (base.x * base.x + base.z * base.z).sqrt() < 30.0 { 1.0 } else { 0.45 };
+        f.grow(&mut g, base, s, tints[k % tints.len()], density);
     }
     f
 }
