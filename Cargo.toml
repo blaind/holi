@@ -1,0 +1,15 @@
+[package]
+name = "holi_rs"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "A colour-festival meadow with volumetric powder clouds, built with Bevy"
+
+[dependencies]
+bevy = "0.19.1"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
